@@ -11,7 +11,7 @@ public class Turno {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "cliente_id")
+    @JoinColumn(name = "cliente_id", nullable = true)
     private Usuario cliente;
 
     @ManyToOne
@@ -28,6 +28,11 @@ public class Turno {
 
     @Column(name = "fecha_hora_inicio")
     private LocalDateTime fechaHoraInicio;
+    @Column(name = "fecha_hora_fin", nullable = false)
+    private LocalDateTime fechaHoraFin;
+
+    @Column(name = "nombre_walkin", length = 100)
+    private String nombreWalkin;
 
     private String estado = "PENDIENTE";
 
@@ -46,4 +51,8 @@ public class Turno {
     public void setFechaHoraInicio(LocalDateTime fechaHoraInicio) { this.fechaHoraInicio = fechaHoraInicio; }
     public String getEstado() { return estado; }
     public void setEstado(String estado) { this.estado = estado; }
+    public LocalDateTime getFechaHoraFin() { return fechaHoraFin; }
+    public void setFechaHoraFin(LocalDateTime fechaHoraFin) { this.fechaHoraFin = fechaHoraFin; }
+    public String getNombreWalkin() { return nombreWalkin; }
+    public void setNombreWalkin(String nombreWalkin) { this.nombreWalkin = nombreWalkin; }
 }

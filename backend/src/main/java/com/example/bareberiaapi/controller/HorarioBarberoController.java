@@ -3,6 +3,7 @@ package com.example.bareberiaapi.controller;
 import com.example.bareberiaapi.entity.HorarioBarbero;
 import com.example.bareberiaapi.service.HorarioBarberoService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -17,4 +18,10 @@ public class HorarioBarberoController {
 
     @PostMapping
     public HorarioBarbero crear(@RequestBody HorarioBarbero horario) { return horarioService.guardar(horario); }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> desactivar(@PathVariable Long id) {
+        horarioService.desactivar(id);
+        return ResponseEntity.noContent().build();
+    }
 }

@@ -11,6 +11,16 @@ public class HorarioBarberoService {
     @Autowired
     private HorarioBarberoRepository horarioRepository;
 
-    public List<HorarioBarbero> listarTodos() { return horarioRepository.findAll(); }
     public HorarioBarbero guardar(HorarioBarbero horario) { return horarioRepository.save(horario); }
+
+    public void desactivar(Long id) {
+        HorarioBarbero h = horarioRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Horario no encontrado"));
+        h.setActivo(false);
+        horarioRepository.save(h);
+    }
+
+    public List<HorarioBarbero> listarTodos() {
+        return horarioRepository.findByActivoTrue(); // solo activos
+    }
 }

@@ -73,7 +73,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/horarios/**").hasRole("DUEÑO")
 
                         // DUENO Y BARBERO
-                        .requestMatchers(HttpMethod.PUT, "/api/turnos/**").hasAnyRole("DUEÑO", "BARBERO")
+                        .requestMatchers(HttpMethod.PUT, "/api/turnos/**").hasAnyRole("DUEÑO", "BARBERO", "CLIENTE")
 
                         // CUALQUIER AUTENTICADO
                         .requestMatchers(HttpMethod.GET, "/api/usuarios/barberos").authenticated()

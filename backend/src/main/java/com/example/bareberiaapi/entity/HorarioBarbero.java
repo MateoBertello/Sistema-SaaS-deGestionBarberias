@@ -27,7 +27,10 @@ public class HorarioBarbero {
     @Column(name = "hora_fin")
     private LocalTime horaFin;
 
-    // Getters y Setters
+    @Column(nullable = false)
+    private Boolean activo = true;
+
+    // getter y setter
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public Usuario getBarbero() { return barbero; }
@@ -40,4 +43,6 @@ public class HorarioBarbero {
     public void setHoraInicio(LocalTime horaInicio) { this.horaInicio = horaInicio; }
     public LocalTime getHoraFin() { return horaFin; }
     public void setHoraFin(LocalTime horaFin) { this.horaFin = horaFin; }
+    public Boolean getActivo() { return activo; }
+    public void setActivo(Boolean activo) { this.activo = activo; }
 }
