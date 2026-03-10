@@ -12,6 +12,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 
 @Component
@@ -34,6 +36,9 @@ public class JwtFilter extends OncePerRequestFilter {
             if (jwtUtil.validarToken(token)) {
                 String email = jwtUtil.extraerEmail(token);
                 String rol = jwtUtil.extraerRol(token);
+
+                System.out.println(">>> ROL EXTRAÍDO: [" + rol + "]");
+                System.out.println(">>> BYTES: " + Arrays.toString(rol.getBytes(StandardCharsets.UTF_8)));
 
                 // Spring Security necesita el rol con prefijo "ROLE_"
                 // Por eso si el rol es "BARBERO", acá queda "ROLE_BARBERO"

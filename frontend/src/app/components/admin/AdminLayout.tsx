@@ -4,7 +4,8 @@ import { LayoutDashboard, Users, Star, MapPin, Calendar, LogOut, Sun, Moon } fro
 import { applyTheme } from "../../constants";
 
 const NAV_ITEMS = [
-  { icon: LayoutDashboard, label: "Turnos",     path: "/admin" },
+  // ✅ CORREGIDO: era "Turnos" pero la ruta es el AdminDashboard con métricas globales
+  { icon: LayoutDashboard, label: "Dashboard",  path: "/admin" },
   { icon: Users,           label: "Staff",      path: "/admin/staff" },
   { icon: Star,            label: "Servicios",  path: "/admin/services" },
   { icon: MapPin,          label: "Sucursales", path: "/admin/branches" },

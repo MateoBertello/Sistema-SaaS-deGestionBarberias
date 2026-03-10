@@ -2,9 +2,9 @@ import { useState, useEffect, useMemo } from "react";
 import { X, UserPlus, Clock } from "lucide-react";
 import { apiClient } from "./utils/apsClient";
 
-interface Barbero  { id: number; nombre: string; apellido: string; }
-interface Servicio { id: number; nombre: string; duracionMinutos: number; }
-interface Sucursal { id: number; nombre: string; }
+interface Barbero  { id: number; nombre: string; apellido: string; activo: boolean; }
+interface Servicio { id: number; nombre: string; duracionMinutos: number; activo?: boolean; }
+interface Sucursal { id: number; nombre: string; activo?: boolean; }
 
 interface Props {
   isOpen: boolean;
@@ -105,31 +105,37 @@ export function WalkInModal({ isOpen, onClose, onSuccess, barberoPreseleccionado
   }, [form, servicios, horariosBase, turnosOcupados]);
 
   async function handleSubmit() {
-    if (!form.nombre.trim() || !form.slot) return setError("Falta nombre u horario");
-    setLoading(true);
-    try {
-      const srv = servicios.find(s => s.id.toString() === form.servicioId);
-      const start = new Date(`${form.fecha}T${form.slot}:00`);
-      await apiClient("/turnos/walkin", {
-        method: "POST",
-        body: JSON.stringify({
-          nombreWalkin: form.nombre.trim(),
-          barberoId: parseInt(form.barberoId),
-          servicioId: parseInt(form.servicioId),
-          sucursalId: parseInt(form.sucursalId),
-          fechaHoraInicio: start.toISOString(),
-          fechaHoraFin: new Date(start.getTime() + (srv?.duracionMinutos || 30) * 60000).toISOString()
-        }),
-        successMessage: "Turno registrado"
-      });
-      onSuccess();
-      onClose();
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
+  if (!form.nombre.trim() || !form.slot) return setError("Falta nombre u horario");
+  setLoading(true);
+  try {
+    const srv = servicios.find(s => s.id.toString() === form.servicioId);
+    const duracion = srv?.duracionMinutos || 30;
+    const [slotH, slotM] = form.slot.split(":").map(Number);
+    const totalMin = slotH * 60 + slotM + duracion;
+    const finH = Math.floor(totalMin / 60).toString().padStart(2, "0");
+    const finM = (totalMin % 60).toString().padStart(2, "0");
+
+    await apiClient("/turnos/walkin", {
+      method: "POST",
+      body: JSON.stringify({
+        nombreWalkin: form.nombre.trim(),
+        barberoId: parseInt(form.barberoId),
+        servicioId: parseInt(form.servicioId),
+        sucursalId: parseInt(form.sucursalId),
+        fechaHoraInicio: `${form.fecha}T${form.slot}:00.000Z`,
+        fechaHoraFin: `${form.fecha}T${finH}:${finM}:00.000Z`,
+      }),
+      successMessage: "Turno registrado"
+    });
+    onSuccess();
+    onClose();
+  } catch (e: any) {
+    setError(e.message);
+  } finally {
+    setLoading(false);
   }
+}
+  
 
   if (!isOpen) return null;
 
@@ -159,7 +165,8 @@ export function WalkInModal({ isOpen, onClose, onSuccess, barberoPreseleccionado
               <label className="text-xs text-zinc-500 uppercase font-bold mb-1 block">Sucursal</label>
               <select value={form.sucursalId} onChange={e => setForm({...form, sucursalId: e.target.value})} className="w-full p-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white">
                 <option value="">Seleccioná</option>
-                {sucursales.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                {sucursales.filter(s => s.activo !== false).map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                
               </select>
             </div>
             <div>
@@ -181,7 +188,7 @@ export function WalkInModal({ isOpen, onClose, onSuccess, barberoPreseleccionado
                 className="w-full p-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white disabled:opacity-50"
               >
                 <option value="">Seleccioná</option>
-                {barberos.map(b => <option key={b.id} value={b.id}>{b.nombre} {b.apellido}</option>)}
+                {barberos.filter(b => b.activo).map(b => <option key={b.id} value={b.id}>{b.nombre} {b.apellido}</option>)}
               </select>
             </div>
             <div>
