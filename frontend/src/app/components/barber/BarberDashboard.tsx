@@ -35,7 +35,7 @@ export function BarberDashboard() {
         {agenda.map(t => (
             <div key={t.id} className={`bg-zinc-900 border border-zinc-800 p-5 rounded-xl flex justify-between items-center ${t.estado?.toUpperCase() === 'CANCELADO' ? 'opacity-40' : ''}`}>
                 <div>
-                    <div className="text-[var(--gold)] font-bold text-xl">{new Date(t.fechaHoraInicio).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}hs</div>
+                    <div className="text-[var(--gold)] font-bold text-xl">{t.fechaHoraInicio?.substring(11, 16)}hs</div>
                     <div className="text-white font-medium flex items-center gap-2">{t.cliente ? t.cliente.nombre : <span className="text-purple-400">{t.nombreWalkin} (W)</span>}</div>
                 </div>
                 <div className="flex gap-2">
