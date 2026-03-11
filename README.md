@@ -19,12 +19,20 @@ Construido con una arquitectura moderna: API REST stateless con Spring Boot + JW
 
 ---
 
+## 🖥️ Demo visual
+
+| Login | Panel Cliente | Wizard de Reservas | Panel Admin |
+|:-----:|:-------------:|:------------------:|:-----------:|
+| ![Login](./docs/screen-login.png) | ![Cliente](./docs/screen-client.png) | ![Wizard](./docs/screen-booking.png) | ![Admin](./docs/screen-admin.png) |
+
+---
+
 ## ✨ Funcionalidades
 
 ### 👤 Cliente
 - Registro e inicio de sesión con JWT
 - **Wizard de reservas en 5 pasos**: sucursal → servicio → barbero → horario → confirmación
-- Barberos filtrados automáticamente por la sucursal seleccionada
+- Barberos filtrados automáticamente según la sucursal seleccionada
 - Slots de horario calculados en tiempo real según disponibilidad y duración del servicio
 - Historial de turnos con estado en tiempo real (PENDIENTE / COMPLETADO / CANCELADO)
 - Cancelación de turnos propios con un click
@@ -33,17 +41,17 @@ Construido con una arquitectura moderna: API REST stateless con Spring Boot + JW
 - Agenda diaria filtrada automáticamente por usuario autenticado
 - Cambio de estado de turnos: **Completado** / **Cancelado**
 - Registro de clientes **walk-in** (sin cuenta previa) desde el mismo panel
-- Panel con selección de slots disponibles, validando solapamientos en tiempo real
+- Slots disponibles calculados en tiempo real, validando solapamientos
 
 ### 🏢 Dueño / Admin
-- Dashboard con métricas globales: usuarios, servicios, sucursales, turnos
+- Dashboard con métricas globales: usuarios, servicios, sucursales y turnos
 - Tabla de últimos turnos con cliente, barbero, servicio, fecha y estado
 - Turno walk-in disponible también desde el panel administrativo
 - **CRUD de Staff** — alta y baja de barberos
 - **CRUD de Servicios** — nombre, duración en minutos y precio
 - **CRUD de Sucursales** — nombre, dirección y teléfono
-- **Gestión de horarios** de barberos por día y sucursal
-- Soft delete en servicios y sucursales con badge visual de estado
+- **Gestión de horarios** por barbero, día y sucursal
+- Soft delete con badge visual de estado (INACTIVO / CERRADA)
 
 ---
 
@@ -72,13 +80,6 @@ Construido con una arquitectura moderna: API REST stateless con Spring Boot + JW
 Cliente → POST /api/auth/login → JWT (24h) → Bearer Token en cada request
                                               ↓
                                     JwtFilter valida → Controller → Service → DB
-```
-
-**Flujo de reserva (BookingWizard):**
-```
-Sucursal → Servicio → Barbero (filtrado por sucursal) → Slot disponible → Confirmación
-                                                              ↓
-                                              Validación de solapamiento en DB
 ```
 
 ---
@@ -122,9 +123,8 @@ Sucursal → Servicio → Barbero (filtrado por sucursal) → Slot disponible �
 - **BCrypt** para hash de contraseñas — nunca expuestas en respuestas (patrón DTO)
 - **JWT Bearer Token** firmado con HMAC-SHA256, validez de 24 horas
 - **JwtFilter** intercepta y valida cada request antes del controlador
-- **CORS** configurado por origen explícito (`localhost:3000`, `localhost:5173`, `localhost`)
+- **CORS** configurado por origen explícito, sin wildcards en producción
 - **Soft delete** en lugar de DELETE físico — preserva integridad referencial histórica
-- Control de acceso granular por rol en `SecurityConfig`
 
 ### Matriz de permisos
 
@@ -132,6 +132,7 @@ Sucursal → Servicio → Barbero (filtrado por sucursal) → Slot disponible �
 |---|:---:|:---:|:---:|
 | `POST /api/auth/login` | ✅ | ✅ | ✅ |
 | `POST /api/auth/register` | ✅ | ✅ | ✅ |
+| `POST /api/auth/setup` | ✅ solo 1 vez | ✅ solo 1 vez | ✅ solo 1 vez |
 | `GET /api/turnos` | ✅ propios | ✅ propios | ✅ todos |
 | `POST /api/turnos` | ✅ | ✅ | ✅ |
 | `PUT /api/turnos/{id}/estado` | ✅ | ✅ | ✅ |
@@ -146,64 +147,11 @@ Sucursal → Servicio → Barbero (filtrado por sucursal) → Slot disponible �
 
 ---
 
-## 🗄️ Modelo de datos
-
-```
-Usuario        (id, nombre, email, contrasena*, rol, telefono, activo)
-               rol: DUEÑO | BARBERO | CLIENTE
-               *almacenada como hash BCrypt, nunca expuesta
-
-Turno          (id, cliente→Usuario, barbero→Usuario, servicio→Servicio,
-                sucursal→Sucursal, fechaHoraInicio, fechaHoraFin,
-                nombreWalkin, estado)
-               estado: PENDIENTE | COMPLETADO | CANCELADO
-               cliente_id nullable — permite turnos walk-in sin cuenta
-
-Servicio       (id, nombre, duracionMinutos, precio, activo)
-
-Sucursal       (id, nombre, direccion, telefono, activa)
-
-HorarioBarbero (id, barbero→Usuario, sucursal→Sucursal,
-                diaSemana, horaInicio, horaFin, activo)
-               diaSemana: MONDAY | TUESDAY | ... | SUNDAY
-```
-
----
-
-## 🌐 Endpoints de la API
-
-### Auth
-| Método | Ruta | Descripción | Auth |
-|---|---|---|---|
-| POST | `/api/auth/login` | Iniciar sesión → JWT + rol + id | ❌ |
-| POST | `/api/auth/register` | Registro público (crea CLIENTE) | ❌ |
-| POST | `/api/auth/crear-staff` | Crear BARBERO o DUEÑO | JWT (DUEÑO) |
-
-### Turnos
-| Método | Ruta | Descripción | Auth |
-|---|---|---|---|
-| GET | `/api/turnos` | Listar (filtrables por `clienteId` o `barberoId`) | JWT |
-| POST | `/api/turnos` | Crear turno con validación de solapamiento | JWT |
-| POST | `/api/turnos/walkin` | Crear turno sin cliente registrado | JWT (BARBERO/DUEÑO) |
-| PUT | `/api/turnos/{id}/estado` | Cambiar estado: COMPLETADO / CANCELADO | JWT |
-
-### Recursos
-| Método | Ruta | Auth |
-|---|---|---|
-| GET | `/api/usuarios` | JWT (DUEÑO) |
-| GET | `/api/usuarios/barberos` | JWT |
-| DELETE | `/api/usuarios/{id}` | JWT (DUEÑO) |
-| GET/POST/DELETE | `/api/servicios/**` | GET: JWT — POST/DELETE: JWT (DUEÑO) |
-| GET/POST/DELETE | `/api/sucursales/**` | GET: JWT — POST/DELETE: JWT (DUEÑO) |
-| GET/POST/DELETE | `/api/horarios/**` | GET: JWT — POST/DELETE: JWT (DUEÑO) |
-
----
-
 ## ✨ Decisiones técnicas destacadas
 
 **Validación de solapamiento anti-overbooking**
 
-La validación se ejecuta directamente en base de datos con una query JPQL que compara intervalos. Evita condiciones de carrera si dos requests llegan simultáneamente:
+La validación se ejecuta en base de datos con una query JPQL que compara intervalos. Evita condiciones de carrera si dos requests llegan simultáneamente:
 
 ```java
 @Query("""
@@ -227,27 +175,26 @@ turno.setFechaHoraFin(fin);
 
 **HTTP client centralizado (`apiClient.ts`)**
 
-Todas las llamadas pasan por un único wrapper que agrega el JWT automáticamente, muestra toasts con Sonner y redirige al login ante un 401:
+Todas las llamadas pasan por un único wrapper que agrega el JWT automáticamente y redirige al login si el token expira:
 
 ```typescript
-// Redirige automáticamente si el token expiró
 if (response.status === 401) {
   localStorage.clear();
   window.location.href = '/';
+  throw new Error("Sesión expirada");
 }
 ```
 
-**Filtrado de barberos por sucursal**
+**Setup de primer administrador auto-bloqueante**
 
-El BookingWizard filtra los barberos disponibles cruzando la tabla de horarios: solo muestra barberos que tienen al menos un horario configurado en la sucursal elegida, evitando selecciones inválidas antes de consultar al backend.
+El endpoint `POST /api/auth/setup` crea el primer usuario DUEÑO sin requerir autenticación. Una vez que existe al menos un DUEÑO en la base de datos, el endpoint devuelve `403` permanentemente — sin flags de entorno ni intervención manual:
 
-**Soft delete con indicador visual**
-
-Servicios y sucursales eliminados mantienen `activo = false`. El frontend los muestra con un badge "INACTIVO / CERRADA" en lugar de ocultarlos, preservando la integridad histórica de los turnos.
-
-**Rutas protegidas por rol**
-
-`ProtectedRoute` valida el rol del token almacenado en `localStorage` y redirige automáticamente al panel correcto si el usuario intenta acceder a una ruta no autorizada.
+```java
+if (usuarioRepository.existsByRol("DUEÑO")) {
+    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+            .body("{\"error\": \"El sistema ya fue inicializado.\"}");
+}
+```
 
 ---
 
@@ -257,14 +204,12 @@ Servicios y sucursales eliminados mantienen `activo = false`. El frontend los mu
 BarberSaaS/
 ├── backend/
 │   └── src/main/java/com/example/bareberiaapi/
-│       ├── controller/         → AuthController, TurnoController,
-│       │                         UsuarioController, ServicioController,
-│       │                         SucursalController, HorarioBarberoController
-│       ├── service/            → Lógica de negocio por entidad
-│       ├── repository/         → JPA + queries JPQL personalizadas
-│       ├── entity/             → Usuario, Turno, Servicio, Sucursal, HorarioBarbero
-│       ├── security/           → JwtUtil, JwtFilter, SecurityConfig
-│       ├── config/             → CorsConfig, GlobalExceptionHandler
+│       ├── controller/         → Endpoints REST
+│       ├── service/            → Lógica de negocio
+│       ├── repository/         → JPA + queries JPQL
+│       ├── entity/             → Modelos JPA
+│       ├── security/           → JWT, filtros, SecurityConfig
+│       ├── config/             → CORS, GlobalExceptionHandler
 │       └── dto/                → AuthResponse, LoginRequest, UsuarioDTO, WalkInRequest
 │
 ├── frontend/src/app/
@@ -277,10 +222,11 @@ BarberSaaS/
 │   │   ├── login/              → LoginPage
 │   │   └── ui/                 → Componentes shadcn/ui
 │   ├── utils/
-│   │   └── apsClient.ts        → HTTP client centralizado con JWT
-│   ├── constants.ts            → Tokens de diseño (colores, tipografías, temas)
+│   │   └── apiClient.ts        → HTTP client centralizado con JWT
+│   ├── constants.ts            → Tokens de diseño y sistema de temas
 │   └── routes.tsx              → Router con rutas protegidas por rol
 │
+├── docs/                       → Capturas de pantalla
 ├── docker-compose.yml
 ├── .env.example
 └── README.md
@@ -310,12 +256,9 @@ cp .env.example .env
 Completar `.env`:
 
 ```env
-# Base de datos
 DB_URL=jdbc:postgresql://<host>:<puerto>/<nombre_db>
 DB_USERNAME=tu_usuario
 DB_PASSWORD=tu_contraseña
-
-# JWT — mínimo 32 caracteres
 JWT_SECRET=cambia_esto_por_una_clave_segura_de_32_caracteres
 ```
 
@@ -330,30 +273,31 @@ docker compose up --build
 | Frontend | http://localhost |
 | API REST | http://localhost:8080/api |
 
-> **Primera vez:** Hibernate crea las tablas automáticamente con `ddl-auto=update`. El primer usuario DUEÑO debe crearse directamente en la base de datos o habilitando temporalmente el endpoint de registro con ese rol.
+### 4. Crear el primer administrador
+
+La primera vez que levantás el sistema, no existe ningún usuario DUEÑO. Ejecutá este request una sola vez:
+
+```bash
+curl -X POST http://localhost:8080/api/auth/setup \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nombre": "Tu Nombre",
+    "email": "admin@tudominio.com",
+    "contrasena": "tu-contraseña-segura"
+  }'
+```
+
+La respuesta incluye el JWT listo para usar. Desde ese momento el endpoint queda bloqueado para siempre — cualquier llamada posterior devuelve `403 El sistema ya fue inicializado.`
 
 ### Desarrollo local (sin Docker)
 
 ```bash
 # Backend
-cd backend
-./mvnw spring-boot:run
+cd backend && ./mvnw spring-boot:run
 
-# Frontend
-cd frontend
-npm install
-npm run dev   # http://localhost:5173
+# Frontend (otra terminal)
+cd frontend && npm install && npm run dev
 ```
-
----
-
-## 🐳 Docker
-
-El proyecto usa builds multi-stage para minimizar el tamaño de las imágenes finales.
-
-**Backend** — `maven:3.8.5-openjdk-17` compila el JAR, `amazoncorretto:17-alpine` lo ejecuta.
-
-**Frontend** — `node:18-alpine` genera el build de Vite, `nginx:alpine` sirve los estáticos con la configuración necesaria para React Router (`try_files $uri /index.html`).
 
 ---
 
@@ -369,6 +313,8 @@ El proyecto está diseñado para deployarse en cualquier servidor con Docker:
 
 ## 👨‍💻 Autor
 
-**Mateo Bertello** — Desarrollador Backend
+**Mateo Bertello** — Desarrollador Back
 
 [![GitHub](https://img.shields.io/badge/GitHub-MateoBertello-181717?style=flat-square&logo=github)](https://github.com/MateoBertello)
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Mateo_Bertello-0A66C2?style=flat-square&logo=linkedin)](www.linkedin.com/in/mateo-ignacio-bertello-3386193a0l)

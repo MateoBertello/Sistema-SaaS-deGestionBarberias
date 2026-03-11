@@ -59,6 +59,7 @@ public class SecurityConfig {
                         // RUTAS PUBLICAS
                         .requestMatchers("/api/auth/login").permitAll()
                         .requestMatchers("/api/auth/register").permitAll()
+                        .requestMatchers("/api/auth/setup").permitAll()   // ← setup inicial sin JWT
 
                         // SOLO DUENO
                         .requestMatchers("/api/auth/crear-staff").hasRole("DUEÑO")

@@ -84,4 +84,28 @@ public class AuthController {
                     .body("{\"error\": \"Error al crear staff. El email ya existe.\"}");
         }
     }
+
+    // Setup inicial: crea el primer DUEÑO si no existe ninguno.
+    // Una vez que hay un DUEÑO en la base de datos, este endpoint devuelve 403
+    // y queda inutilizable para siempre.
+    @PostMapping("/setup")
+    public ResponseEntity<?> setup(@RequestBody Usuario nuevoUsuario) {
+        if (usuarioRepository.existsByRol("DUEÑO")) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("{\"error\": \"El sistema ya fue inicializado.\"}");
+        }
+
+        try {
+            nuevoUsuario.setRol("DUEÑO");
+            nuevoUsuario.setActivo(true);
+            Usuario creado = usuarioService.guardar(nuevoUsuario);
+
+            String token = jwtUtil.generarToken(creado.getEmail(), creado.getRol());
+            AuthResponse response = new AuthResponse(token, creado.getRol(), creado.getId(), creado.getNombre());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body("{\"error\": \"Error al crear el administrador. El email ya existe.\"}");
+        }
+    }
 }
